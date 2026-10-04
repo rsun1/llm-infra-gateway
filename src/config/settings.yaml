@@ -1,0 +1,16 @@
+server:
+  host: "0.0.0.0"
+  port: 8000
+
+monitoring:
+  prometheus_port: 9090
+  enable_tracing: true
+  gpu_metric_interval_sec: 5
+
+cold_start:
+  start_timeout_sec: 120
+  warmup_prompt: "Hello"
+
+routing:
+  default_strategy: "least_load"
+  max_queue_size: 100

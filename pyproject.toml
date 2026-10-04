@@ -1,0 +1,18 @@
+[project]
+  name = "llm-infra"
+  version = "0.1.0"
+  requires-python = ">=3.11"
+  dependencies = [
+      "fastapi",
+      "pydantic",
+      "pydantic-settings",
+      "pyyaml",
+      "tenacity",
+      "structlog",
+      "uvicorn",
+  ]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio"]
+vllm = ["vllm"]
+observability = ["opentelemetry-sdk", "prometheus-client"]
