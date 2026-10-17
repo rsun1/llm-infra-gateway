@@ -5,13 +5,20 @@ from src.config import settings
 #from deployment.manager import ModelDeploymentManager
 from src.api.routes import register_routes
 from fastapi.middleware.cors import CORSMiddleware
+from src.core.serving.backend_adapter import BackendAdapter
+from src.core.serving.mock_engine import MockEngine
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Start LLM Router Platform")
-    
+    adapter = BackendAdapter()
+    adapter.register_engine("mock-7b", MockEngine())
+    await adapter.initialize()
+    app.state.adapter = adapter
     yield
     
+    await adapter.shutdown()
     print("Shutting down....")
 
 def create_app() -> FastAPI:

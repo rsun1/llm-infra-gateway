@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from src.utils.types import LLMInferRequest
 
 
@@ -24,10 +24,14 @@ def register_routes(app: FastAPI):
         }
         
     @app.post("/v1/chat/completions")
-    async def chat_completions(req: LLMInferRequest):
-        raise HTTPException(
-            status_code=503,
-            detail="Inference engine is not initialized yet.",
-        )
-        
+    async def chat_completions(req: LLMInferRequest, request: Request):
+        adapter = request.app.state.adapter
+        try:
+            response = await adapter.generate(req)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=404,
+                detail=str(e),
+            )
+        return response
         
