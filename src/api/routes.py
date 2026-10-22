@@ -25,9 +25,9 @@ def register_routes(app: FastAPI):
         
     @app.post("/v1/chat/completions")
     async def chat_completions(req: LLMInferRequest, request: Request):
-        adapter = request.app.state.adapter
+        scheduler = request.app.state.scheduler
         try:
-            response = await adapter.generate(req)
+            response = await scheduler.submit(req)
         except ValueError as e:
             raise HTTPException(
                 status_code=404,

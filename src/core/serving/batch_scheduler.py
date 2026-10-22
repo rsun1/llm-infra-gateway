@@ -22,9 +22,14 @@ class BatchScheduler:
     async def _run_batch(self):
         batch = self.queue[:self.max_batch_size]
         self.queue = self.queue[self.max_batch_size:]
+        #print("这次处理的请求数：", len(batch))
         for request, future in batch:
-            response = await self.adapter.generate(request)
-            future.set_result(response)
+            try:
+                response = await self.adapter.generate(request)
+                future.set_result(response)
+            except Exception as e:
+                future.set_exception(e)
+        
         
     async def submit(self,request:LLMInferRequest) -> LLMInferResponse:
         future = asyncio.Future()
