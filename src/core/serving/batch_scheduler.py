@@ -1,5 +1,6 @@
 from src.core.serving.backend_adapter import BackendAdapter
 from src.utils.types import LLMInferRequest,LLMInferResponse
+from src.core.cold_start.cold_start_mgr import ColdStartManager
 import asyncio
 from time import time 
 
@@ -10,6 +11,7 @@ class BatchScheduler:
         self.max_wait_ms = max_wait_ms
         self.queue : list[tuple[LLMInferRequest, asyncio.Future]]=[]
         self.first_queue_at: float | None = None 
+        self.cold_start_mgr: ColdStartManager | None = None
         
     async def _timeout_watcher(self):
         while True:
@@ -18,13 +20,17 @@ class BatchScheduler:
                 wait_time_ms = 1000* (asyncio.get_event_loop().time() - self.first_queue_at)
                 if wait_time_ms >= self.max_wait_ms:
                     await self._run_batch()
+                    
+    def set_cold_start_mgr(self, cold_start_mgr: ColdStartManager):
+        self.cold_start_mgr = cold_start_mgr
     
     async def _run_batch(self):
         batch = self.queue[:self.max_batch_size]
         self.queue = self.queue[self.max_batch_size:]
-        #print("这次处理的请求数：", len(batch))
+        #print("number of requests this turn：", len(batch))
         for request, future in batch:
             try:
+                await self.cold_start_mgr.ensure_model_ready(request.model) 
                 response = await self.adapter.generate(request)
                 future.set_result(response)
             except Exception as e:

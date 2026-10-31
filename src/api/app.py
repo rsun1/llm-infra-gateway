@@ -9,20 +9,33 @@ from src.core.serving.backend_adapter import BackendAdapter
 from src.core.serving.mock_engine import MockEngine
 from src.core.serving.batch_scheduler import BatchScheduler
 import asyncio
+from src.core.serving.kv_cache import KVCacheManager
+from src.core.cold_start.cold_start_mgr import ColdStartManager
+from src.core.registry.model_registry import ModelRegistry, ModelStage
+from src.monitoring.metrics import MetricsCollector
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Start LLM Router Platform")
     adapter = BackendAdapter()
     adapter.register_engine("mock-7b", MockEngine())
+    registry = ModelRegistry()
+    registry.register('mock-7b','v1.0',ModelStage.PRODUCTION)
+    app.state.registry = registry 
+    kv_cache = KVCacheManager(max_size=100)
+    adapter.set_kv_cache(kv_cache)
     await adapter.initialize()
     app.state.adapter = adapter
+    mgr = ColdStartManager(adapter,max_loaded=3)
     scheduler = BatchScheduler(
         adapter = adapter,
         max_batch_size = 3,
         max_wait_ms = 300
     )
+    scheduler.set_cold_start_mgr(mgr)
     app.state.scheduler = scheduler
+    metrics = MetricsCollector()
+    app.state.metrics = metrics
     watcher_task = asyncio.create_task(scheduler._timeout_watcher())
     try:
         yield
