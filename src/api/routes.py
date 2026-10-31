@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException, Request
 from src.utils.types import LLMInferRequest
 from time import time
+from fastapi.responses import StreamingResponse
+import json 
 
 def register_routes(app: FastAPI):
     @app.get("/health")
@@ -60,3 +62,14 @@ def register_routes(app: FastAPI):
                 "p95_latency_ms": metrics.get_p95_latency(model_name),
             }
         return result
+    
+    @app.post("/v1/completions/stream")
+    async def completions_stream(req: LLMInferRequest, request: Request):
+        adapter = request.app.state.adapter
+        
+        async def event_generator():
+            async for chunk in adapter.generate_stream(req):
+                yield f"data: {json.dumps(chunk.model_dump())}\n\n"
+            yield "data: [DONE]\n\n"
+            
+        return StreamingResponse(event_generator(), media_type="text/event-stream")
