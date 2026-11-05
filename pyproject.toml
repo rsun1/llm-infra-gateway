@@ -10,6 +10,7 @@
       "tenacity",
       "structlog",
       "uvicorn",
+      "typer",
   ]
 
 [project.optional-dependencies]

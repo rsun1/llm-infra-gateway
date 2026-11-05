@@ -13,12 +13,18 @@ from src.core.serving.kv_cache import KVCacheManager
 from src.core.cold_start.cold_start_mgr import ColdStartManager
 from src.core.registry.model_registry import ModelRegistry, ModelStage
 from src.monitoring.metrics import MetricsCollector
+from src.core.routing.model_router import ModelRouter
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Start LLM Router Platform")
     adapter = BackendAdapter()
-    adapter.register_engine("mock-7b", MockEngine())
+    adapter.register_engine("mock-7b","m-A1", MockEngine())
+    adapter.register_engine('mock-7b',"m-B1", MockEngine())
+    router = ModelRouter()
+    router.register("mock-7b","m-A1")
+    router.register("mock-7b","m-B1")
+    adapter.set_router(router)
     registry = ModelRegistry()
     registry.register('mock-7b','v1.0',ModelStage.PRODUCTION)
     app.state.registry = registry 
